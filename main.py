@@ -12,10 +12,15 @@ from runners.runners import *
 def main():
 
     args = parse_arguments()
+    if args.config:
+        config_params = load_config_from_json(args.config)
+        # Atualiza os parâmetros do argparse com os valores do JSON
+        for key, value in config_params.items():
+            setattr(args, key, value)
+    
     df_pu_classify = pd.DataFrame()
     for _ in range(args.sample):
         for rate in args.rates:
-            args = parse_arguments()
             dataset = torch.load(args.dataset_path, weights_only=False)
             dataset = Data(x = dataset[0]['x'], y = dataset[0]['y'], edge_index = dataset[0]['edge_index'])
             data = organize_data(data = dataset,
@@ -53,7 +58,6 @@ def main():
                     df_pu_classify = pd.concat([df_pu_classify, df_aux2], ignore_index=True)
                     
                     df_pu_classify.to_csv(f'results/pu_classify_results_{data.name}.csv')
-
 
 
 main()

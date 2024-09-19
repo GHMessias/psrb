@@ -6,6 +6,7 @@ from rewiring.rewiring import rewiring
 from models.models import *
 from torch_geometric.nn import GAE
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+import json
 
 
 def parse_arguments():
@@ -14,6 +15,7 @@ def parse_arguments():
     '''
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='Path to the JSON config file with parameters')
     parser.add_argument('--neg_inf', action='store_true', help='Train the model only to found reliable negatives')
     parser.add_argument('--model_names', type = str, nargs = '+', default = ['LP_PUL', 'PU_LP', 'MCLS', 'CCRNE', 'GCN', 'RGCN'], help = 'Models for experiment to run')
     parser.add_argument('--positive_class', type = int, help = 'Class that should be passed for positive examples. The rest of the classes will be considered as negative')
@@ -29,8 +31,13 @@ def parse_arguments():
     parser.add_argument('--hid_dim', type = int, default=64, help = 'Number of neurons in hidden dimension of neural net models')
     parser.add_argument('--out_dim', type = int, default=16, help = 'Number of neurons in output dimension of neural net models')
 
-
     return parser.parse_args()
+
+def load_config_from_json(json_file):
+    '''Function to load parameters from a JSON file'''
+    with open(json_file, 'r') as f:
+        config = json.load(f)
+    return config
 
 def organize_data(data, L, rate, positive_class, alpha, beta, gamma, name):
     '''
