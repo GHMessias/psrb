@@ -12,7 +12,7 @@ O modelo PSRB consiste na aplicação de uma função de probabilidade geometric
 
 O PSRB opera em duas formas distintas: (1) Utilização de comand lines ou (2) usando um json de configuração (recomenda-se a utilização de um json dada a facilidade de editar os parâmetros)
 
-´´´ python3 main.py [options] ´´´
+´´´python3 main.py [options]
 
 |Option|Domain|Default|Description|
 |------|------|-------|-----------|
