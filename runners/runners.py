@@ -12,28 +12,7 @@ from sklearn import svm
 import pandas as pd
 from networkx.algorithms import node_classification
 
-
-
-
-def neg_inf(args, dataset_path, model_name, rates):
-
-    '''
-    Function to train the model to infer reliable negative examples
-    '''
-    for rate in rates:
-        # organing the data in positive and unlabeled classes, setting the L graphs in case of rewiring
-
-        # loading dataset
-        dataset = torch.load(args.dataset_path, weights_only=False)
-        dataset = Data(x = dataset[0]['x'], y = dataset[0]['y'], edge_index = dataset[0]['edge_index'])
-        data = organize_data(data = dataset,
-                                L = args.L,
-                                rate = rate,
-                                positive_class = args.positive_class,
-                                name = args.dataset_name)
-        
-        
-    return
+epochs = 100
 
 def pu_classification(data, model):
     '''
@@ -42,8 +21,10 @@ def pu_classification(data, model):
     for element in data.N:
         data.infered_y[element] = 0
 
-    weights_gcn = torch.tensor([ len(data.y[data.y == 1]) / len(data.y), len(data.y[data.y == 0])/ len(data.y)])
-    weights_rgcn = torch.tensor([ len(data.y[data.y == 1]) / len(data.y),  len(data.y[data.y == 0])/ (len(data.y))])
+    weights_gcn = torch.tensor([2 * len(data.y[data.y == 1]) / len(data.y), len(data.y[data.y == 0])/ len(data.y)])
+    weights_rgcn = torch.tensor([2 * len(data.y[data.y == 1]) / len(data.y),  len(data.y[data.y == 0])/ (len(data.y))])
+    # weights_gcn = None
+    # weights_rgcn = None
     data.train_mask = torch.tensor([1 if data.infered_y[x] in [0,1] else 0 for x in range(data.num_nodes)], dtype = torch.bool)
     if isinstance(model, (CCRNE, MCLS, RCSVM)):
         clf = svm.SVC()
@@ -56,14 +37,14 @@ def pu_classification(data, model):
         # evaluate(data.y[data.test_mask].detach().numpy(), y_pred, pos_label=1)
 
     if isinstance(model, (VGAE, GAE)):
-        if isinstance(model.encoder, RGCN):
+        if isinstance(model.encoder, (RGCN, RGAT, RGraphSage)):
             freeze_model_params(model.encoder)
             RGCN_classifier = ExtendedRGCN(model.encoder, 2, output_activation_function=torch.softmax)
             optimizer = torch.optim.Adam(RGCN_classifier.parameters(), lr = 0.01)
             
             criterion = torch.nn.CrossEntropyLoss(weight=weights_rgcn, reduction='mean')
 
-            for epoch in range(200):
+            for epoch in range(epochs):
                 optimizer.zero_grad()
                 out = RGCN_classifier(data.x, data.graph_list)
                 loss = criterion(out[data.train_mask], data.infered_y[data.train_mask])
@@ -77,15 +58,17 @@ def pu_classification(data, model):
             return pd.DataFrame(evaluate(data.y[data.test_mask].detach().numpy(), y_pred.detach().numpy(), pos_label = 1))
             # evaluate(data.y[data.test_mask].detach().numpy(), y_pred, pos_label=1)
         
-        if isinstance(model.encoder, GCN):
+        # if isinstance(model.encoder, GCN):
+        else:
             freeze_model_params(model.encoder)
             GCN_classifier = ExtendedGCN(model.encoder, 2).float()
             optimizer = torch.optim.Adam(GCN_classifier.parameters(), lr = 0.01)
             criterion = torch.nn.CrossEntropyLoss(weight = weights_gcn, reduction='mean')
 
-            for epoch in range(200):
+            for epoch in range(epochs):
                 optimizer.zero_grad()
                 out = GCN_classifier(x = data.x, edge_index = data.edge_index)
+                # out = GCN_classifier(x = data.x)
                 loss = criterion(out[data.train_mask], data.infered_y[data.train_mask])
                 print(f'loss for pu classification: epoch {epoch} | loss {loss.item():.4f}', end = '\r')
                 loss.backward()

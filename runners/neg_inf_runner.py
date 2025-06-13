@@ -1,23 +1,18 @@
 '''
-This file run all the experiments of the paper. You can modify the models and dataset used in this experiment looking at the github repository.
-
-Arguments:
-L: number of iterations of the rewiring model
-models: models to use (the models should be in the utils.getmodel function)
+Arquivo para rodar somente os experimentos envolvendo DropEdge, SkipEdge (para inferência de negativos somente) 
+e GAT, GraphSage para a inferência dos negativos.
 '''
-
 from utils.utils import *
 from runners.runners import *
 
-def main():
-
+def neg_inf():
     args = parse_arguments()
     if args.config:
         config_params = load_config_from_json(args.config)
         # Atualiza os parâmetros do argparse com os valores do JSON
         for key, value in config_params.items():
             setattr(args, key, value)
-    
+
     df_pu_classify = pd.DataFrame()
     for _ in range(args.sample):
         for rate in args.rates:
@@ -31,39 +26,22 @@ def main():
                                         alpha = args.alpha,
                                         beta = args.beta,
                                         gamma = args.gamma)
-            print('dataset loaded succesfully', data)
             
+            # TODO: alterar a função get_model para pegar os modelos com dropedge e skipnode.
             for model_name in args.model_names:
-                # print(f'current model {model_name}')
                 # Defining the model to be used
                 model = get_model(model_name, data, L = args.L, activation_function = torch.relu, hid_dim = args.hid_dim, out_dim = args.out_dim)
-                print(f'current model {model}')
 
-                # Searching for reliable negatives based on the model class
+            # Searching for reliable negatives based on the model class
                 if isinstance(model, (CCRNE, LP_PUL, MCLS, PU_LP, RCSVM)):
                     model.train()
                     data.N = model.negative_inference(num_neg = len(data.P))
-                    # data.N = model.negative_inference(num_neg = 100)
             
                 if isinstance(model, GAE):
-                    epochs_gae = 200
-                    optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.0001) 
-                    train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = epochs_gae)
+                    optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.001) 
+                    train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = 100)
                     data.N = gae_negative_inference(data, model, len(data.P))
-                    # data.N = gae_negative_inference(data, model, num_neg = 100)
-    
-            
-                # Setting the parameters to PU task
-                if not args.neg_inf_only:
-                    df_aux2 = pu_classification(data, model)
-                    df_aux2['model'] = model_name
-                    df_aux2['dataset'] = data.name
-                    df_aux2['rate'] = rate
-                    df_aux2['length negatives'] = len(data.N)
-                    df_aux2['length positives'] = len(data.P)
-                    df_pu_classify = pd.concat([df_pu_classify, df_aux2], ignore_index=True)
-                    
-                    df_pu_classify.to_csv(f'results/pu_classify_results_{data.name}.csv')
 
+            # TODO: Criar o código de avaliação dos reliable negatives
 
-main()
+    return

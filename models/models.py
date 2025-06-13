@@ -1,3 +1,5 @@
+from torch_geometric.nn import GATConv, SAGEConv
+from torch_geometric.utils import dropout_adj
 from models.auxiliar_functions import *
 from sklearn.cluster import KMeans
 import numpy as np
@@ -62,6 +64,8 @@ class MCLS:
         # Saving centroids
         cluster_centroids = {}
         centroids = kmeans.cluster_centers_
+
+        print('number of centroids in MCLS', len(centroids))
 
         for i, center in enumerate(centroids):
             cluster_centroids[i] = center
@@ -449,6 +453,7 @@ class ExtendedGCN(torch.nn.Module):
         super(ExtendedGCN, self).__init__()
         self.base_model = base_model
         self.added_layer = GCNConv(base_model.out_channels, add_layer_dim)
+        # self.added_layer = torch.nn.Linear(base_model.out_channels, add_layer_dim)
         self.output_activation_function = output_activation_function
 
     def forward(self, x, edge_index):
@@ -456,6 +461,7 @@ class ExtendedGCN(torch.nn.Module):
         x = self.output_activation_function(self.added_layer(x, edge_index), dim = 1)
         return x
     
+
 class OCSVM:
     def __init__(self, data, kernel = 'rbf'):
         self.data = data.x.detach().numpy()
@@ -469,3 +475,226 @@ class OCSVM:
 
     def predict(self):
         return self.model.predict(self.data[self.U])
+    
+class DropEdgeGCN(torch.nn.Module):
+    '''
+    Class to implement the Graph Convolutional Network
+    '''
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super(DropEdgeGCN, self).__init__()
+        self.in_channels = in_channels
+        self.hidden_channels = hidden_channels
+        self.out_channels = out_channels
+        self.layer1 = GCNConv(in_channels, hidden_channels)
+        self.layer2 = GCNConv(hidden_channels, out_channels)
+
+    def forward(self, x, edge_index, dropout_rate = 0.5):
+        edge_index, _ = dropout_adj(edge_index, p=dropout_rate, force_undirected=True)
+        x = self.layer1(x, edge_index)
+        x = F.relu(x)
+        x = self.layer2(x, edge_index)
+        return x
+    
+# class SkipNodeGCN(torch.nn.Module):
+#     def __init__(self, in_channels, hidden_channels, out_channels, p=0.5):
+#         """
+#         GCN com SkipNode aplicado.
+
+#         Parameters:
+#         - in_channels (int): número de características de entrada (features)
+#         - hidden_channels (int): número de unidades na camada oculta
+#         - out_channels (int): número de classes na camada de saída (output)
+#         - p (float): probabilidade de amostragem de SkipNode
+#         """
+#         super(SkipNodeGCN, self).__init__()
+        
+#         # Camadas de convolução GCN
+#         self.layer1 = GCNConv(in_channels, hidden_channels)
+#         self.layer2 = GCNConv(hidden_channels, out_channels)
+#         self.p = p  # Probabilidade de amostragem para o SkipNode
+
+#     # def forward(self, x, edge_index):
+#     #     """
+#     #     Passagem para frente (forward pass).
+
+#     #     Parameters:
+#     #     - x (Tensor): características dos nós
+#     #     - edge_index (Tensor): índices das arestas do grafo (estrutura de adjacência)
+
+#     #     Returns:
+#     #     - Tensor: saída das predições do modelo (logits)
+#     #     """
+#     #     # Primeira camada de convolução (com SkipNode)
+#     #     x1 = F.relu(self.conv1(x, edge_index))
+        
+#     #     # Aplicando SkipNode: amostragem aleatória de nós para pular a convolução
+#     #     mask = (torch.rand(x1.size(0)) < self.p).float()
+#     #     x1 = x1 * mask.view(-1, 1) + x * (1 - mask).view(-1, 1)  # Mantém as características para nós pulados
+
+#     #     # Segunda camada de convolução
+#     #     x2 = self.conv2(x1, edge_index)
+        
+#     #     return F.log_softmax(x2, dim=1)
+
+#     def forward(self, x, edge_index):
+#         """
+#         Forward pass through the GAT with SkipNode.
+        
+#         Parameters:
+#         - x (Tensor): node features
+#         - edge_index (Tensor): adjacency matrix in COO format (edge indices)
+        
+#         Returns:
+#         - Tensor: output logits (class predictions)
+#         """
+#         # First layer with SkipNode
+#         x1 = self.layer1(x, edge_index)
+#         x1 = F.relu(x1)
+        
+#         # SkipNode implementation: randomly skip nodes
+#         mask = (torch.rand(x1.size(0)) < self.p).float()
+        
+#         # SkipNode: Retain original features for skipped nodes (no dimension transformation)
+#         x1 = x1 * mask.view(-1, 1) + x * (1 - mask).view(-1, 1)  # Retain original features for skipped nodes
+
+#         # Second layer
+#         x2 = self.layer2(x1, edge_index)
+        
+#         return F.log_softmax(x2, dim=1)
+    
+class GAT(torch.nn.Module):
+    '''
+    Class to implement the Graph Attention Network (GAT) with 2 heads
+    '''
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super(GAT, self).__init__()
+        self.in_channels = in_channels
+        self.hidden_channels = hidden_channels
+        self.out_channels = out_channels
+        
+        # GATConv layers with 2 heads
+        self.layer1 = GATConv(in_channels, hidden_channels, heads=2)
+        self.layer2 = GATConv(hidden_channels * 2, out_channels, heads=1, concat=False)
+
+    def forward(self, x, edge_index):
+        # Apply first GAT layer with 2 heads
+        x = self.layer1(x, edge_index)
+        x = F.relu(x)
+        
+        # Apply second GAT layer with 1 head
+        x = self.layer2(x, edge_index)
+        
+        return x
+    
+class GraphSAGE(torch.nn.Module):
+    '''
+    Class to implement the GraphSAGE with 2 aggregation heads
+    '''
+    def __init__(self, in_channels, hidden_channels, out_channels):
+        super(GraphSAGE, self).__init__()
+        self.in_channels = in_channels
+        self.hidden_channels = hidden_channels
+        self.out_channels = out_channels
+        
+        # SAGEConv layers with 2 filters (equivalent to "heads")
+        self.layer1 = SAGEConv(in_channels, hidden_channels)
+        self.layer2 = SAGEConv(hidden_channels, out_channels)
+
+    def forward(self, x, edge_index):
+        # Apply first SAGE layer
+        x = self.layer1(x, edge_index)
+        x = F.relu(x)
+        
+        # Apply second SAGE layer
+        x = self.layer2(x, edge_index)
+        
+        return x
+    
+class RGAT_layer(torch.nn.Module):
+    '''
+    Class to implement the Relational Graph Convolutional Network (RGCN). This Relational module is used for every graph generated via rewiring
+    '''
+    def __init__(self, input_size, output_size, L):
+        super(RGAT_layer, self).__init__()
+        self.L = L
+        self.input_size = input_size
+        self.output_size = output_size
+        self.parameter_list = torch.nn.ParameterList()
+
+        # Rewiring layer (relational layer)
+        self.rewiring_sublayers = list()
+        for i in range(self.L):
+            sublayer = GATConv(self.input_size, self.output_size)
+            self.rewiring_sublayers.append(sublayer)
+            for param in self.rewiring_sublayers[i].parameters():
+                self.parameter_list.append(param)
+
+    def forward(self, x, rewiring_graph_list):
+        # Computing the sum for every generated graph
+        out = torch.zeros((x.shape[0], self.output_size))
+        for i in range(self.L):
+            _x = self.rewiring_sublayers[i](x, rewiring_graph_list[i].edge_index)
+            out += _x
+        return out
+    
+class RGAT(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, L, output_activation_function = torch.relu):
+        super(RGAT, self).__init__()
+        self.layer1 = RGCN_layer(input_size, hidden_size, L)
+        self.layer2 = RGCN_layer(hidden_size, output_size, L)
+        self.output_activation_function = output_activation_function
+        self.L = L
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+
+    def forward(self, x, rewiring_graph_list):
+        x = self.layer1(x, rewiring_graph_list)
+        x = torch.relu(x)
+        x = self.layer2(x, rewiring_graph_list)
+        return x
+    
+
+class RGraphSage_layer(torch.nn.Module):
+    '''
+    Class to implement the Relational Graph Convolutional Network (RGCN). This Relational module is used for every graph generated via rewiring
+    '''
+    def __init__(self, input_size, output_size, L):
+        super(RGraphSage_layer, self).__init__()
+        self.L = L
+        self.input_size = input_size
+        self.output_size = output_size
+        self.parameter_list = torch.nn.ParameterList()
+
+        # Rewiring layer (relational layer)
+        self.rewiring_sublayers = list()
+        for i in range(self.L):
+            sublayer = SAGEConv(self.input_size, self.output_size)
+            self.rewiring_sublayers.append(sublayer)
+            for param in self.rewiring_sublayers[i].parameters():
+                self.parameter_list.append(param)
+
+    def forward(self, x, rewiring_graph_list):
+        # Computing the sum for every generated graph
+        out = torch.zeros((x.shape[0], self.output_size))
+        for i in range(self.L):
+            _x = self.rewiring_sublayers[i](x, rewiring_graph_list[i].edge_index)
+            out += _x
+        return out
+    
+class RGraphSage(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, L, output_activation_function = torch.relu):
+        super(RGraphSage, self).__init__()
+        self.layer1 = RGraphSage_layer(input_size, hidden_size, L)
+        self.layer2 = RGraphSage_layer(hidden_size, output_size, L)
+        self.output_activation_function = output_activation_function
+        self.L = L
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+
+    def forward(self, x, rewiring_graph_list):
+        x = self.layer1(x, rewiring_graph_list)
+        x = torch.relu(x)
+        x = self.layer2(x, rewiring_graph_list)
+        return x

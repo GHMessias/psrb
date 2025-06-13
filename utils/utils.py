@@ -7,6 +7,8 @@ from models.models import *
 from torch_geometric.nn import GAE
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 import json
+from skipnode.gnn import GNN
+from skipnode.strategy import Strategy, generate_strategy
 
 
 def parse_arguments():
@@ -114,14 +116,30 @@ def get_model(model_name, data, **kwargs):
         return GAE(encoder = RGCN(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim'], kwargs['L'], kwargs['activation_function']))
     if model_name == 'GCN':
         return GAE(encoder = GCN(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim']))
+    if model_name == 'DropEdgeGCN':
+        return GAE(encoder = DropEdgeGCN(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim']))
+    if model_name == 'SkipNodeGCN':
+        # return GAE(encoder = SkipNodeGCN(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim']))
+        strategy = generate_strategy()
+        model = GNN(in_channels=data.x.shape[1], hid_channels=kwargs['hid_dim'], out_channels=kwargs['out_dim'], num_layers = 2, dropout = 0, strategy=strategy)
+        return GAE(encoder=model)
+    if model_name == 'GAT':
+        return GAE(encoder = GAT(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim']))
+    if model_name == 'GraphSage':
+        return GAE(encoder = GraphSAGE(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim']))
+    if model_name == 'RGAT':
+        return GAE(encoder = RGAT(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim'], kwargs['L'], kwargs['activation_function']))
+    if model_name == 'RGraphSage':
+        return GAE(encoder = RGraphSage(data.x.shape[1], kwargs['hid_dim'], kwargs['out_dim'], kwargs['L'], kwargs['activation_function']))
 
 def gae_negative_inference(data, model, num_neg):
     inference_dict = dict()
     model.eval()
-    if isinstance(model.encoder, RGCN):
+    if isinstance(model.encoder, (RGCN, RGAT, RGraphSage)):
         H_L = model.encode(data.x, data.graph_list)
 
-    if isinstance(model.encoder, GCN):
+    # if isinstance(model.encoder, GCN):
+    else:
         H_L = model.encode(data.x.float(), data.edge_index)
 
     for element in data.U:
@@ -132,7 +150,7 @@ def gae_negative_inference(data, model, num_neg):
     return torch.stack(list(dicionario_ordenado.keys())[:num_neg])
 
 def train_gae(data, gae_model, optimizer, epochs, verbose = False):
-    if isinstance(gae_model.encoder, RGCN):
+    if isinstance(gae_model.encoder, (RGCN, RGAT, RGraphSage)):
         for e in range(epochs):
             optimizer.zero_grad()
             H_L = gae_model.encode(data.x.float(), data.graph_list)
@@ -141,7 +159,7 @@ def train_gae(data, gae_model, optimizer, epochs, verbose = False):
                 print(f'epoch {e+1} | loss {loss.item()}', end = '\r')
             loss.backward()
             optimizer.step()
-    if isinstance(gae_model.encoder, GCN):
+    if isinstance(gae_model.encoder, (GCN, GAT, GraphSAGE, DropEdgeGCN, GNN)):
         for e in range(epochs):
             optimizer.zero_grad()
             H_L = gae_model.encode(data.x.float(), data.edge_index)
@@ -157,7 +175,7 @@ def freeze_model_params(model):
     for param in model.parameters():
         param.requires_grad = False
 
-def evaluate(y_true, y_pred, pos_label = 1, verbose = True):
+def evaluate(y_true, y_pred, pos_label = 1, verbose = False):
     acc =  round(accuracy_score(y_true, y_pred), 4)
     f1 = round(f1_score(y_true, y_pred, pos_label = pos_label),4)
     recall = round(recall_score(y_true, y_pred, pos_label = pos_label),4)
