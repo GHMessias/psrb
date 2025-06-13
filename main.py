@@ -47,7 +47,7 @@ def main():
             
                 if isinstance(model, GAE):
                     epochs_gae = 200
-                    optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.0001) 
+                    optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.001) 
                     train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = epochs_gae)
                     data.N = gae_negative_inference(data, model, len(data.P))
                     # data.N = gae_negative_inference(data, model, num_neg = 100)
