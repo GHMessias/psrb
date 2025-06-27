@@ -10,7 +10,6 @@ from utils.utils import *
 from runners.runners import *
 
 def main():
-
     args = parse_arguments()
     if args.config:
         config_params = load_config_from_json(args.config)

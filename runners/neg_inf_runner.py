@@ -13,7 +13,7 @@ def neg_inf():
         for key, value in config_params.items():
             setattr(args, key, value)
 
-    df_pu_classify = pd.DataFrame()
+    df_neg_inf = pd.DataFrame()
     for _ in range(args.sample):
         for rate in args.rates:
             dataset = torch.load(args.dataset_path, weights_only=False)
@@ -27,12 +27,13 @@ def neg_inf():
                                         beta = args.beta,
                                         gamma = args.gamma)
             
-            # TODO: alterar a função get_model para pegar os modelos com dropedge e skipnode.
             for model_name in args.model_names:
+                print('model_name, ', model_name)
+                print('number of positives, ', len(data.P))
                 # Defining the model to be used
                 model = get_model(model_name, data, L = args.L, activation_function = torch.relu, hid_dim = args.hid_dim, out_dim = args.out_dim)
 
-            # Searching for reliable negatives based on the model class
+                # Searching for reliable negatives based on the model class
                 if isinstance(model, (CCRNE, LP_PUL, MCLS, PU_LP, RCSVM)):
                     model.train()
                     data.N = model.negative_inference(num_neg = len(data.P))
@@ -42,6 +43,23 @@ def neg_inf():
                     train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = 100)
                     data.N = gae_negative_inference(data, model, len(data.P))
 
-            # TODO: Criar o código de avaliação dos reliable negatives
+                # print(data.N)
+
+                # TODO: Criar o código de avaliação dos reliable negatives
+                y_pred = len(data.N) * [0]
+                y_true = data.y[data.N].tolist()
+                # print(y_pred, y_true)
+                df_aux2 = pd.DataFrame(evaluate(y_true = y_true, y_pred = y_pred, pos_label = 0, verbose = True))
+                df_aux2['model'] = model_name
+                df_aux2['dataset'] = data.name
+                df_aux2['rate'] = rate
+                df_aux2['length negatives'] = len(data.N)
+                df_aux2['length positives'] = len(data.P)
+                df_neg_inf = pd.concat([df_neg_inf, df_aux2], ignore_index=True)
+                    
+                df_neg_inf.to_csv(f'results/neg_inf_results_{data.name}.csv')
 
     return
+
+neg_inf()
+# print('EOF')

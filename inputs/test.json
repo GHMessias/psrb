@@ -1,9 +1,9 @@
 {
     "neg_inf": true,
-    "model_names": ["RGCN"],
-    "positive_class": 1,
-    "dataset_path": "datasets/PubMed/processed/data.pt",
-    "dataset_name": "PubMed",
+    "model_names": ["RGCN", "DropEdgeGCN", "SkipNodeGCN"],
+    "positive_class": 0,
+    "dataset_path": "datasets/dblp/processed/data_undirected.pt",
+    "dataset_name": "DBLP",
     "sample": 5,
     "rates": [0.01, 0.05, 0.1, 0.15, 0.2, 0.25],
     "L": 2,
