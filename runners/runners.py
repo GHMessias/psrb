@@ -12,7 +12,7 @@ from sklearn import svm
 import pandas as pd
 from networkx.algorithms import node_classification
 
-epochs = 100
+epochs = 50
 
 def pu_classification(data, model):
     '''

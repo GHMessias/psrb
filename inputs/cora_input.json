@@ -1,6 +1,6 @@
 {
     "neg_inf": true,
-    "model_names": ["MCLS", "CCRNE", "PU_LP", "LP_PUL", "RCSVM", "GCN", "GAT", "GraphSage", "RGCN", "RGAT", "RGraphSage", "DropEdgeGCN"],
+    "model_names": ["SkipNodeGCN", "GCN", "GAT", "GraphSage", "RGCN", "RGAT", "RGraphSage", "DropEdgeGCN"],
     "positive_class": 3,
     "dataset_path": "datasets/Cora/processed/data.pt",
     "dataset_name": "Cora",
