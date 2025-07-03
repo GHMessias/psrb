@@ -32,7 +32,8 @@ def parse_arguments():
     parser.add_argument('--gamma', type = float, default = 2,help = 'Gamma parameter of the probability function')
     parser.add_argument('--hid_dim', type = int, default=64, help = 'Number of neurons in hidden dimension of neural net models')
     parser.add_argument('--out_dim', type = int, default=16, help = 'Number of neurons in output dimension of neural net models')
-
+    parser.add_argument('--epochs_neginf', type = int, default = 100, help = 'Number of epochs for negative inference phase')
+    parser.add_argument('--epochs_puclassify', type = int, default = 100, help = 'Number of epochs for binary classification phase')
     return parser.parse_args()
 
 def load_config_from_json(json_file):

@@ -12,9 +12,9 @@ from sklearn import svm
 import pandas as pd
 from networkx.algorithms import node_classification
 
-epochs = 50
 
-def pu_classification(data, model):
+
+def pu_classification(data, model, epochs = 100):
     '''
     Função responsável por treinar os modelos a partir da segunda etapa, os dados negativos em data.N representam os elementos inferidos. 
     '''

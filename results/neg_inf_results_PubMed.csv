@@ -1,0 +1,4 @@
+,acc,f1,precision,recall,1/1,0/0,0/1,1/0,model,dataset,rate,length negatives,length positives
+0,0.8961,0.9452,0.8961,1.0,0,69,0,8,MCLS,PubMed,0.01,77,77
+1,0.6104,0.7581,0.6104,1.0,0,47,0,30,CCRNE,PubMed,0.01,77,77
+2,0.2208,0.3617,0.2208,1.0,0,17,0,60,RCSVM,PubMed,0.01,77,77

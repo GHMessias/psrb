@@ -1,6 +1,6 @@
 {
     "neg_inf": true,
-    "model_names": ["SkipNodeGCN", "GCN", "GAT", "GraphSage", "RGCN", "RGAT", "RGraphSage", "DropEdgeGCN"],
+    "model_names": ["GCN", "GAT", "GraphSage", "RGCN", "RGAT", "RGraphSage"],
     "positive_class": 3,
     "dataset_path": "datasets/Cora/processed/data.pt",
     "dataset_name": "Cora",
@@ -14,3 +14,11 @@
     "hid_dim": 64,
     "out_dim": 16
   }
+
+
+
+
+
+
+
+  

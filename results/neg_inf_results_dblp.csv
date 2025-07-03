@@ -1,0 +1,4 @@
+,acc,f1,precision,recall,1/1,0/0,0/1,1/0,model,dataset,rate,length negatives,length positives
+0,0.7215,0.8382,0.7215,1.0,0,57,0,22,MCLS,dblp,0.01,79,79
+1,0.1013,0.1839,0.1013,1.0,0,8,0,71,CCRNE,dblp,0.01,79,79
+2,,0.0,0.0,0.0,,,,,RCSVM,dblp,0.01,0,79

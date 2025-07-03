@@ -47,14 +47,14 @@ def main():
                 if isinstance(model, GAE):
                     epochs_gae = 30
                     optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.001) 
-                    train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = epochs_gae)
+                    train_gae(data = data, gae_model = model, optimizer = optimizer, epochs = args.epochs_neginf)
                     data.N = gae_negative_inference(data, model, len(data.P))
                     # data.N = gae_negative_inference(data, model, num_neg = 100)
     
             
                 # Setting the parameters to PU task
                 if not args.neg_inf_only:
-                    df_aux2 = pu_classification(data, model)
+                    df_aux2 = pu_classification(data, model, epochs = args.epochs_puclassify)
                     df_aux2['model'] = model_name
                     df_aux2['dataset'] = data.name
                     df_aux2['rate'] = rate
