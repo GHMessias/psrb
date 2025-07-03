@@ -1,0 +1,17 @@
+{
+    "neg_inf": true,
+    "model_names": ["GCN", "GAT", "GraphSage", "RGCN", "RGAT", "RGraphSage"],
+    "positive_class": 3,
+    "dataset_path": "datasets/Cora/processed/data.pt",
+    "dataset_name": "Cora",
+    "sample": 5,
+    "rates": [0.01, 0.05, 0.1, 0.15, 0.2, 0.25],
+    "L": 2,
+    "neg_inf_only": false,
+    "alpha": 0.23,
+    "beta": 0.46,
+    "gamma": 1.6,
+    "hid_dim": 64,
+    "out_dim": 16,
+    "epochs_puclassify" : 50
+  }
